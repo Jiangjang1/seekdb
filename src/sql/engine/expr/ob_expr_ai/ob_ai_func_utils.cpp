@@ -1603,7 +1603,9 @@ bool ObAIFuncPromptObjectUtils::is_valid_prompt_object(ObJsonObject *prompt_obje
       ObJsonNode *node = args_array->get_value(i);
       if (OB_ISNULL(node)) {  
         is_valid = false;
-      } else if (node->json_type() != ObJsonNodeType::J_STRING && node->json_type() != ObJsonNodeType::J_OBJECT) {
+      } else if (node->json_type() != ObJsonNodeType::J_STRING &&
+                 node->json_type() != ObJsonNodeType::J_OBJECT &&
+                 node->json_type() != ObJsonNodeType::J_ARRAY) {
         is_valid = false;
       }
     }
@@ -1633,6 +1635,14 @@ int ObAIFuncPromptObjectUtils::replace_all_str_args_in_template(ObIAllocator &al
       if (OB_NOT_NULL(arg_node) && arg_node->json_type() == ObJsonNodeType::J_STRING) {
         ObJsonString *arg_str = static_cast<ObJsonString *>(arg_node);
         max_result_len += arg_str->get_str().length();
+      } else if (OB_NOT_NULL(arg_node) &&
+                 (arg_node->json_type() == ObJsonNodeType::J_OBJECT ||
+                  arg_node->json_type() == ObJsonNodeType::J_ARRAY)) {
+        ObString raw_arg;
+        if (OB_FAIL(arg_node->get_raw_binary(raw_arg, &allocator))) {
+        } else {
+          max_result_len += raw_arg.length();
+        }
       } else {
         ret = OB_INVALID_ARGUMENT;
       }
@@ -1686,8 +1696,19 @@ int ObAIFuncPromptObjectUtils::replace_all_str_args_in_template(ObIAllocator &al
                 } else {
                   ret = OB_BUF_NOT_ENOUGH;
                 }
+              } else if (OB_NOT_NULL(arg_node) &&
+                         (arg_node->json_type() == ObJsonNodeType::J_OBJECT ||
+                          arg_node->json_type() == ObJsonNodeType::J_ARRAY)) {
+                ObString arg_value;
+                if (OB_FAIL(arg_node->get_raw_binary(arg_value, &allocator))) {
+                } else if (result_pos + arg_value.length() <= max_result_len) {
+                  MEMCPY(result_buf + result_pos, arg_value.ptr(), arg_value.length());
+                  result_pos += arg_value.length();
+                } else {
+                  ret = OB_BUF_NOT_ENOUGH;
+                }
               } else {
-                //do nothing
+                ret = OB_INVALID_ARGUMENT;
               }
               
               i = end_pos;

@@ -1,8 +1,11 @@
 select ai_prompt('{0}+{1}={2} 吗？请回答true或false','1');
 ai_prompt('{0}+{1}={2} 吗？请回答true或false','1')
 {"args": ["1"], "template": "{0}+{1}={2} 吗？请回答true或false"}
-select ai_prompt('{0}+{1}={2} 吗？请回答true或false',json_object("a","1"));
-ERROR 0A000: json type is not supported not supported
+select ai_prompt('{0}|{0}|{1}',json_object("a","1"),json_array(1,"x"));
+ai_prompt('{0}|{0}|{1}',json_object("a","1"),json_array(1,"x"))
+{"args": [{"a": "1"}, [1, "x"]], "template": "{0}|{0}|{1}"}
+select ai_prompt('{1}',json_object("a","1"));
+ERROR 22000: Invalid argument
 select ai_prompt();
 ERROR 42000: Incorrect parameter count in the call to native function 'ai_prompt'
 select ai_prompt(1);
